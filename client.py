@@ -3,7 +3,7 @@ import sys
 import time
 import threading
 import json
-
+from protocol import *
 
 server_ip = 'localhost'
 server_port = 1111
@@ -20,16 +20,15 @@ except:
 
 # receive message from server
 def receive():
-    while True:
+    while onserver:
         try:
-            # receive message from server
-            message = client_socket.recv(1024).decode()
-            if message == 'LOGIN_SUCCESS':
-                print('Login success')
-            elif message == 'REGISTER_SUCCESS':
-                print('Register success')
-            elif message == 'LOGIN_FAIL':
-                print('Login failed')
+            recv_msg = client_socket.recv(1024).decode()
+            if recv_msg == 'exit':  
+                break
+            print(recv_msg)
+            return recv_msg
+        except:
+            pass
                
             
 def convert_yesno_to_bool(yesno):
@@ -39,35 +38,21 @@ def convert_yesno_to_bool(yesno):
         return False
     else:
         print('Invalid input')
-# login or register
-# def login_session():
-#     mode = input('Enter mode(login, register): ')
-#     if mode == 'login':
-#         client_socket.sendall('LOGIN\\'.encode())
-#         client_socket.sendall(input('Enter your ID: ').encode())
-#     elif mode == 'register':
-#         client_socket.sendall('REGISTER\\'.encode())
-#         client_socket.sendall(input('Enter your ID: ').encode())
-#     else:
-#         print('Invalid mode')
-#         sys.exit()
 
-# def enter_chatroom():
-#     mode = input('Enter mode(request, send): ')
-#     if mode == 'request':
-#         client_socket.sendall('REQUEST\\'.encode())
-#         client_socket.sendall(input('Enter your ID: ').encode())
-
+global onserver
 onserver = True
+data = clientMode()
 def send():
     while onserver:
-        mode = input('Enter mode(login, register, request, send): ')
+        global mode
+        mode = input('Enter mode(login, register): ')
         sendmore = True
         if mode == 'login':
             client_id = input('Enter your ID: ')
-            msg = json.dumps({'mode': 'login', 'client_id': client_id})
+            msg = {'mode': mode, 'id': client_id}
             client_socket.sendall(msg.encode())
+            
         elif mode == 'register':
             client_id = input('Enter your ID: ')
-            msg = json.dumps({'mode': 'register', 'client_id': client_id})
+            msg = {'mode': mode, 'id': client_id}
             client_socket.sendall(msg.encode())

@@ -1,11 +1,12 @@
 from enum import Enum, auto
+
 #Client protocol
 class clientMode(Enum):
-    REQUEST: auto()
-    SEND: auto()
-    REGISTER: auto()
-    LOGIN: auto()
-    
+    REQUEST = auto() # I changed this from 'REQUEST:' to 'REQUEST = ' to get <clientMode.REQUEST: 1>, <clientMode.SEND: 2>, <clientMode.REGISTER: 3>, <clientMode.LOGIN: 4> 
+    SEND = auto() # if didn't get it wrong to what you wanted to implement
+    REGISTER = auto()
+    LOGIN = auto()
+
 def GetRequestMSG(senderID, Last_modified_Date)->str:
     msg= clientMode.REGISTER + "\\"
     msg+=senderID + "\\"
