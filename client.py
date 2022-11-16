@@ -5,32 +5,7 @@ import threading
 import json
 from protocol import *
 
-server_ip = 'localhost'
-server_port = 1111
-
-client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
-# connect to server
-try:
-    client_socket.connect((server_ip, server_port))
-except:
-    print('Connection failed')
-    sys.exit()
-
-# receive message from server
-def receive():
-    while onserver:
-        try:
-            recv_msg = client_socket.recv(1024).decode()
-            if recv_msg == 'exit':  
-                break
-            print(recv_msg)
-            return recv_msg
-        except:
-            pass
-               
-            
+# OPTIONAL FUNCTION
 def convert_yesno_to_bool(yesno):
     if yesno == 'y':
         return True
@@ -39,20 +14,75 @@ def convert_yesno_to_bool(yesno):
     else:
         print('Invalid input')
 
-global onserver
-onserver = True
-data = clientMode()
+# CONNECT TO SERVER
+def connect():
+    global client
+    global connected
+    reconnect = True
+    while reconnect:
+        server_ip = input('Enter server IP: ')
+        server_port = input('Enter server port: ')
+        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            client.connect((server_ip, int(server_port)))
+            print('Connected to server')
+            reconnect = False
+            connected = True
+        except:
+            print('Connection failed')
+            reconnect = convert_yesno_to_bool(input('Do you want to reconnect? (y/n): '))
+    if reconnect == False:
+        print('Goodbye')
+        sys.exit()
+    return client
+
+# RECEIVE FROM SERVER
+def receive():
+    global recv_msg
+    while connected:
+        try:
+            recv_msg = client.recv(1024).decode('utf-8')
+        except:
+            print('Connection lost from server')
+            break
+        
 def send():
-    while onserver:
-        global mode
-        mode = input('Enter mode(login, register): ')
-        sendmore = True
+    global mode
+    global send_msg
+    global client_id
+    while connected:
+        mode = input('Enter mode(login, register, exit): ')
         if mode == 'login':
             client_id = input('Enter your ID: ')
-            msg = {'mode': mode, 'id': client_id}
-            client_socket.sendall(msg.encode())
-            
+            send_msg = {'mode': mode, 'id': client_id}
+            client.sendall(send_msg.encode())
+            if recv_msg['logined'] == True:
+                print('Login success')
+                print('Welcome', recv_msg['id'])
+                while recv_msg['logined']:
+                    mode = input('Enter mode(send, request, exit): ')
+                    if mode == 'send':
+                        sending = True
+                        while sending:
+                            receiver_id = input('Enter receiver ID: ')
+                            message = input('Enter message: ')
+                            send_msg = {'mode': mode, 'id': client_id, 'receiver_id': receiver_id, 'message': message}
+                            client.sendall(send_msg.encode())
+                            if recv_msg['sent'] == True:
+                                print('Message sent')
+                            else:
+                                print('Message not sent due to invalid receiver ID')
+                                sending = convert_yesno_to_bool(input('Do you want to send message again? (y/n): '))
+                            sending = convert_yesno_to_bool(input('Do you want to send another message? (y/n): '))
+                            
         elif mode == 'register':
             client_id = input('Enter your ID: ')
-            msg = {'mode': mode, 'id': client_id}
-            client_socket.sendall(msg.encode())
+            send_msg = {'mode': mode, 'id': client_id}
+            client.sendall(send_msg.encode())
+        elif mode == 'exit':
+            print('Goodbye')
+            sys.exit()
+        else:
+            print('Invalid mode')
+            continue

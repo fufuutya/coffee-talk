@@ -4,6 +4,10 @@ import sys
 import queue
 import select
 import protocol
+
+# FROM BELL
+# i WILL SEND DATA TO THE SERVER IN DICT FORMAT
+
 class serverDatabase():
     def AddAccount(self, senderID):
         pass
