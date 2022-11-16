@@ -75,6 +75,18 @@ def send():
                                 print('Message not sent due to invalid receiver ID')
                                 sending = convert_yesno_to_bool(input('Do you want to send message again? (y/n): '))
                             sending = convert_yesno_to_bool(input('Do you want to send another message? (y/n): '))
+                    elif mode == 'request':
+                        requesting = True
+                        while requesting:
+                            send_msg = {'mode': mode, 'id': client_id}
+                            client.sendall(send_msg.encode())
+                            if recv_msg['requested'] == True:
+                                print('Request success')
+                                print('Messages from', recv_msg['id'])
+                                print(recv_msg['messages'])
+                            else:
+                                print('Request failed')
+                            requesting = convert_yesno_to_bool(input('Do you want to request again? (y/n): '))
                             
         elif mode == 'register':
             client_id = input('Enter your ID: ')
