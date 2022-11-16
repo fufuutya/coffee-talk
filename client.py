@@ -20,8 +20,8 @@ def connect():
     global connected
     reconnect = True
     while reconnect:
-        server_ip = input('Enter server IP: ')
-        server_port = input('Enter server port: ')
+        server_ip = 'localhost'
+        server_port = 1111
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
@@ -32,9 +32,6 @@ def connect():
         except:
             print('Connection failed')
             reconnect = convert_yesno_to_bool(input('Do you want to reconnect? (y/n): '))
-    if reconnect == False:
-        print('Goodbye')
-        sys.exit()
     return client
 
 # RECEIVE FROM SERVER
@@ -99,3 +96,10 @@ def send():
         else:
             print('Invalid mode')
             continue
+
+# THREADING
+connect()
+recv_t = threading.Thread(target=receive)
+recv_t.start()
+send_t = threading.Thread(target=send)
+send_t.start()
