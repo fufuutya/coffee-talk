@@ -43,6 +43,7 @@ def receive():
     while connected:
         try:
             recv_msg = client.recv(1024).decode('utf-8')
+            recv_msg = json.loads(recv_msg)
         except:
             print('Connection lost from server')
             break
@@ -55,7 +56,7 @@ def send():
         mode = input('Enter mode(login, register, exit): ')
         if mode == 'login':
             client_id = input('Enter your ID: ')
-            send_msg = {'mode': mode, 'id': client_id}
+            send_msg = json.dumps({'mode': mode, 'client_id': client_id})
             client.sendall(send_msg.encode())
             if recv_msg['logined'] == True:
                 print('Login success')
@@ -67,7 +68,7 @@ def send():
                         while sending:
                             receiver_id = input('Enter receiver ID: ')
                             message = input('Enter message: ')
-                            send_msg = {'mode': mode, 'id': client_id, 'receiver_id': receiver_id, 'message': message}
+                            send_msg = json.dumps({'mode': mode, 'client_id': client_id, 'receiver_id': receiver_id, 'message': message})
                             client.sendall(send_msg.encode())
                             if recv_msg['sent'] == True:
                                 print('Message sent')
@@ -78,7 +79,7 @@ def send():
                     elif mode == 'request':
                         requesting = True
                         while requesting:
-                            send_msg = {'mode': mode, 'id': client_id}
+                            send_msg = json.dumps({'mode': mode, 'client_id': client_id})
                             client.sendall(send_msg.encode())
                             if recv_msg['requested'] == True:
                                 print('Request success')
