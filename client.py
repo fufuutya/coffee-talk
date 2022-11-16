@@ -32,6 +32,9 @@ def connect():
         except:
             print('Connection failed')
             reconnect = convert_yesno_to_bool(input('Do you want to reconnect? (y/n): '))
+            if reconnect == False:
+                print('Goodbye')
+                sys.exit()
     return client
 
 # RECEIVE FROM SERVER
