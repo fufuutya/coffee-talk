@@ -4,15 +4,8 @@ import time
 import threading
 import json
 from protocol import *
-
-# OPTIONAL FUNCTION
-def convert_yesno_to_bool(yesno):
-    if yesno == 'y':
-        return True
-    elif yesno == 'n':
-        return False
-    else:
-        print('Invalid input')
+import datetime
+from option import *
 
 # CONNECT TO SERVER
 def connect():
