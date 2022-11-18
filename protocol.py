@@ -1,5 +1,6 @@
 from enum import Enum, auto
 
+# update!!!
 #Client protocol
 #  data = {
 #     'mode': 'login',
