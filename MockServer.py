@@ -5,9 +5,6 @@ import queue
 import select
 import protocol
 
-# FROM BELL
-# i WILL SEND DATA TO THE SERVER IN DICT FORMAT in JSON.dumps
-
 class serverDatabase():
     def AddAccount(self, senderID):
         pass
