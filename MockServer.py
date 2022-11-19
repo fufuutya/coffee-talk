@@ -1,101 +1,105 @@
 import socket
 import datetime
 import sys
+import json
 import queue
 import select
 import protocol
+import selectors
+from DB import Database
 
-class serverDatabase():
-    def AddAccount(self, senderID):
-        pass
-    def AddMSG(self, senderID):
-        pass
-    def GetQuery(self, senderID, last_date):
-        pass
-    
-class serverWork():
-    def __init__(self,Mode, senderID) -> None:
-        self.mode = Mode;
-        self.senderID = senderID
-        pass
-    def __init__(self,Mode, senderID, date) -> None:
-        self.__init__(Mode, senderID);
-        self.date = date;
-    def __init__(self,Mode, senderID, date,receiverID, msg) -> None:
-        self.__init__(Mode, senderID, date)
-        self.receiverID = receiverID
-        self.msg = msg;
-    def Do(self):
-        if(Mode == protocol.clientMode.register):
-            
-class clientSocket():
-    def __init__(self, clientSocket:socket) -> None:
+class ClientConnection():
+    def __init__(self, clientSocket:socket, database : Database) -> None:
         self.clientSocket = clientSocket;
+        self.database : Database = database
         self.isLogged = False;
         self.clientID = None;
-        self.sendingQueue = [];
-    def returnInput(self):
-        data = self.clientSocket.recv(1024);
-        return self.clientID, str(data);
-    def GiveInput(self,msg):
-        data = self.clientSocket.sendall(msg.decode());
+        self.OutputQueue = [];
+    def acceptPacket(self, conn):
+        recv_msg = conn.recv(1024).decode('utf-8');
+        recv_msg = json.loads(recv_msg);
+        match recv_msg['mode']:
+            case 'login':
+                self.login(recv_msg['id'])
+            case 'registered':
+                self.register(recv_msg['id'])
+            case 'send':
+                self.sendMSG(recv_msg['client_id'],recv_msg['receiver_id'],recv_msg['message'], recv_msg['date'])
+            case 'request':
+                self.receiveMSG(recv_msg['client_id'], recv_msg['date']);
+    def receiveMSG(self, clientID, date):
+        if self.isValidClient(clientID):
+            data = self.database.getMessageFor(clientID, date);
+            for letter in data:
+                senderID = letter[0]
+                message = letter[2]
+                date = letter[3]#need to fix magic number problem.
+                send_msg = json.dumps({'mode':'request','requested' : True ,'client_id' : clientID,'sender_id' : senderID, 'message' : message, 'date' : date})
+                self.OutputQueue.append(send_msg);
+        else:
+            send_msg = json.dumps({'mode' : 'request', 'requested' : False, 'client_id' : clientID});
+            self.OutputQueue.append(send_msg);
         
+            
+    def sendMSG(self, senderID, receiverID, msg, date):
+        isSent = False;
+        if self.isValidClient(senderID):
+            self.database.addMessage(senderID, receiverID, msg, date)
+            isSent = True;
+        else:
+            pass
+        send_msg = json.dumps({'mode':'send', 'client_id': senderID, 'receiver_id' : receiverID, 'sent' : isSent})
+        self.OutputQueue.append(send_msg);
+            
+    def register(self,ID):
+        if self.database.isIDExist(ID):
+            self.database.addID(ID);
+            self.isLogged = True;
+            self.clientID = ID;
+        send_msg = json.dumps({'mode':"register", 'registered': self.isLogged});
+        self.OutputQueue.append(send_msg);
+    def login(self, ID):
+        if not self.database.isIDExist(ID):
+            self.isLogged = True;
+            self.clientID = ID;
+        send_msg = json.dumps({'mode':'login','id': ID, 'logined' : self.isLogged})
+        self.OutputQueue.append(send_msg);
+    def FlushOutput(self):
+        for output in self.OutputQueue:
+            self.clientSocket.sendall(output.encode());
+            self.OutputQueue.remove(output);
             
     def login(self, loginID) -> None:
         self.isLogged = True;
         self.clientID = loginID;
-    
-def main():
+    def isValidClient(self, clientID)->bool:
+        return self.isLogged and self.clientID == clientID;
+def getMasterSocket():
     portNumber = 1111;
     serverSocket = socket.socket(socket.AF_INET, socket.SOCKET_STREAM)
     serverSocket.bind(socket.gethostname(), portNumber)
     serverSocket.listen(5);
-    
-    clientSockets = {}
-    inputs = [serverSocket]
-    outputs = []
-    message_queues = {}
-    
-    while inputs:
-        readable, writable, exceptional = select.select(
-            inputs, outputs, inputs)
-        for s in readable:
-            if s is serverSocket:
-                connection, client_address = s.accept()
-                connection.setblocking(0)
-                inputs.append(connection)
-                clientSocket[clientsocket] = connection;
-                message_queues[connection] = queue.Queue()
-            else:
-                data = s.recv(1024)
-                if data:
-                    data = input(' -> ')
-                    message_queues[s].put(data.encode())
-                    if s not in outputs:
-                        outputs.append(s)
-                else:
-                    if s in outputs:
-                        outputs.remove(s)
-                    inputs.remove(s)
-                    s.close()
-                    del message_queues[s]
-    
-        for s in writable:
-            try:
-                next_msg = message_queues[s].get_nowait()
-                print(next_msg)
-            except queue.Empty:
-                outputs.remove(s)
-            else:
-                s.send(next_msg)
+    serverSocket.setblocking(False);
+    return serverSocket
 
-        for s in exceptional:
-            inputs.remove(s)
-            if s in outputs:
-                outputs.remove(s)
-            s.close()
-            del message_queues[s]
-
+    
+def main():
+    sel = selectors.DefaultSelector()
+    db = Database();
+    def accept(sock):
+        conn, addr = sock.accept()
+        conn.setbocking(False);
+        clientConnection = ClientConnection(conn, db);
+        sel.register(conn, selectors.EVENT_READ, clientConnection.acceptPacket)
+        sel.register(conn, selectors.EVENT_WRITE, clientConnection.FlushOutput)
+    masterSocket = getMasterSocket();
+    sel.register(masterSocket, selectors.EVENT_READ, accept)
+    while True:
+        events = sel.select()
+        for key, mask in events:
+            callback = key.data
+            callback(key.fileobj);
+    
 
 if __name__ == "__main__":
     main();
