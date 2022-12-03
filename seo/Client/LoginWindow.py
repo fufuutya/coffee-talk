@@ -33,7 +33,7 @@ class LoginPhase():
             return
         if "logined" in rcv_dict:
             self.loginVerify(rcv_dict);
-        elif "register" in rcv_dict:
+        elif "registered" in rcv_dict:
             self.registerVerify(rcv_dict);
         else :
             return

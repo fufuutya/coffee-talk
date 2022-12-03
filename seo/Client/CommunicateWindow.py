@@ -9,18 +9,19 @@ import datetime
 
 class communicateWindow():
     def __init__(self, idInfo) -> None:
-        self.friendWindow = friendWindow(10,20,0,0);
         self.id = idInfo
         self.isLogin = True;
+        self.friendWindow = friendWindow(self.id, 10,20,0,0);
+        self.setErrorWindow();
     def setErrorWindow(self):
-        self.errorWindow = curses.newwin(5,120,21,0);
+        self.errorWindow = curses.newwin(5,120,11,0);
     def task(self):
         while self.isLogin:
             self.friendWindow.update();
             self.checkNetwork();
         return None
     def checkNetwork(self):
-        if(rcvDictList.count != 0):
+        if(len(rcvDictList)):
             rcv_dict:dict = rcvDictList[0];
             rcvDictList.remove(rcv_dict);
             self.receiveMsg(rcv_dict);
@@ -46,10 +47,15 @@ class communicateWindow():
     def sendMsg(self,send_dict):
         sendDictList.append(send_dict);
 class friendWindow():
-    def __init__(self,n_row, n_col, start_x, start_y) -> None:
-        self.window = curses.newwin(n_row, n_col, start_x, start_y);
+    def __init__(self,id, n_row, n_col, start_y, start_x) -> None:
+        self.id = id;
+        self.window = curses.newwin(n_row, n_col, start_y, start_x);
         self.cursor = "+New id";
-        self.conversationWindow = friendAddBox(3, 20, 0, n_row+start_x);
+        self.conversationWindow = friendAddBox(3, 100, 0, n_col+start_x);
+        self.n_row = n_row
+        self.n_col = n_col
+        self.start_y = start_y
+        self.start_x = start_x
     def update(self):
         self.buttonList = chatMsgList.idList.copy()
         self.buttonList.append("+New id");
@@ -64,15 +70,12 @@ class friendWindow():
         self.window.border();
         countRow = 1;
         for id in self.buttonList:
-            self.drawId(id);
+            self.drawId(countRow, id);
             countRow += 1;
         self.window.refresh();
     def handleInput(self,inputchar):
-        if inputchar == curses.KEY_UP:
+        if inputchar == UTF_FILE.KEY_TAB:
             next_cursor = self.getRelativeCursor(-1);
-            self.changeCursor(next_cursor)
-        elif inputchar == curses.KEY_DOWN:
-            next_cursor = self.getRelativeCursor(1);
             self.changeCursor(next_cursor)
         else :
             self.conversationWindow.handleInput(inputchar);
@@ -82,18 +85,20 @@ class friendWindow():
         else:
             self.window.addstr(rowNum, 1, id);
     def changeCursor(self, nextCursor):
-        if(nextCursor == "+New id"):
+        self.cursor = nextCursor
+        self.conversationWindow.window.erase();
+        if(self.cursor == "+New id"):
             dictionary = {"new_id": ""}
-            self.conversationWindow = friendAddBox(dictionary, "new_id", 20,100, 0, 21);
+            self.conversationWindow = friendAddBox(3, 100, 0, self.n_col+self.start_x);
         else:
-            self.conversationWindow = conversationWindow(self.cursor, 20,100, 0, 21)
+            self.conversationWindow = conversationWindow(self.id, self.cursor, 10,50, 0, 21)
     def getRelativeCursor(self,offset):
         currentIndex = self.buttonList.index(self.cursor);
         nextIndex = currentIndex + offset;
-        if(nextIndex >= self.buttonList.count):
-            nextIndex -= self.buttonList.count;
+        if(nextIndex >= len(self.buttonList)):
+            nextIndex -= len(self.buttonList);
         elif(nextIndex < 0):
-            nextIndex += self.buttonList.count;
+            nextIndex += len(self.buttonList);
         else:
             nextIndex = nextIndex
         return self.buttonList[nextIndex];
@@ -104,7 +109,7 @@ class conversationWindow():
         self.clientId = clientId;
         self.targetId = targetId;
         self.window = curses.newwin(n_row-3,n_col,start_y,start_x);
-        self.inputBox = msgAddBox(3,n_col,start_x, start_y + n_row -3);
+        self.inputBox = msgAddBox(self.clientId, self.targetId,3,n_col,start_y + n_row-3, start_x);
     def handleInput(self, inputChar):
         self.inputBox.handleInput(inputChar);
     def update(self):
@@ -135,7 +140,7 @@ class msgAddBox(inputBox):
             send_dict['sender_id'] = self.clientId;
             send_dict['receiver_id'] = self.targetId;
             send_dict['message'] = self.getResult()["msg"];
-            send_dict['date'] = datetime.datetime.now();
+            send_dict['date'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S');
             sendDictList.append(send_dict);
             self.clearContent();
         else:
@@ -148,4 +153,4 @@ class friendAddBox(inputBox):
     def handleInput(self, inputChar) -> None:
         super().handleInput(inputChar);
         if(inputChar == UTF_FILE.KEY_ENTER):
-            chatMsgList.assureIdExist(self.getResult["new_id"]);
+            chatMsgList.assureIdExist(self.getResult()["new_id"]);
