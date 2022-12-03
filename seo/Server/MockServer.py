@@ -37,10 +37,10 @@ class ClientConnection():
                 senderID = letter[0]
                 message = letter[2]
                 date = letter[3]#need to fix magic number problem.
-                send_msg = json.dumps({'mode':'request','requested' : True ,'client_id' : clientID,'sender_id' : senderID, 'message' : message, 'date' : date})
+                send_msg = json.dumps({'mode':'request','requested' : True ,'receiver_id' : clientID,'sender_id' : senderID, 'message' : message, 'date' : date})
                 self.OutputQueue.append(send_msg);
         else:
-            send_msg = json.dumps({'mode' : 'request', 'requested' : False, 'client_id' : clientID});
+            send_msg = json.dumps({'mode' : 'request', 'requested' : False, 'receiver_id' : clientID, 'date' : date});
             self.OutputQueue.append(send_msg);
         
             
@@ -51,7 +51,7 @@ class ClientConnection():
             isSent = True;
         else:
             pass
-        send_msg = json.dumps({'mode':'send', 'client_id': senderID, 'receiver_id' : receiverID, 'sent' : isSent})
+        send_msg = json.dumps({'mode':'send', 'sender_id': senderID, 'receiver_id' : receiverID, 'sent' : isSent, "message" : msg , 'date' : date})
         self.OutputQueue.append(send_msg);
             
     def register(self,ID):

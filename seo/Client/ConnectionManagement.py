@@ -14,7 +14,7 @@ def getClient():
 def connect():
     reconnect = True
     while reconnect:
-        server_ip = '192.168.0.103'
+        server_ip = '172.17.0.14'
         server_port = 1111
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)

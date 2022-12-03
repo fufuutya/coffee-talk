@@ -2,14 +2,8 @@ import curses
 import UTF_FILE
 from ConnectionManagement import rcvDictList;
 from ConnectionManagement import sendDictList;
-import ConnectionManagement
 from CommunicateWindow import communicateWindow;
-def GetNextKey(dictionary:dict, currentKey):
-    currentKeyIndex = list(dictionary.keys()).index(currentKey);
-    nextKeyIndex = currentKeyIndex + 1;
-    if (nextKeyIndex >= len(dictionary.keys())):
-        nextKeyIndex = 0;
-    return list(dictionary.keys())[nextKeyIndex];
+from windowTools import inputBox
 def GetInput(window):
     try:
         inputChar = window.getkey();
@@ -34,14 +28,17 @@ class LoginPhase():
         while not self.isLogin:
             self.loginWindow.update();
             self.checkNetwork();
-        return communicateWindow();#TODO
+        return communicateWindow(self.loginID);#TODO
     def checkNetwork(self):
         if(rcvDictList.count != 0):
             rcv_dict:dict = rcvDictList[0];
+            rcvDictList.remove(rcv_dict);
         else :
             return
         if "logined" in rcv_dict:
             self.loginVerify(rcv_dict);
+        elif "register" in rcv_dict:
+            self.registerVerify(rcv_dict);
         else :
             return
     def loginVerify(self, recv_dict):
@@ -52,9 +49,18 @@ class LoginPhase():
     def loginSuccess(self,recv_dict):
         self.isLogin = True;
         self.loginID = recv_dict["id"];
+        
     def loginFailed(self,recv_dict):
+        self.showErrorMsg("Can't login to id" + str(recv_dict["id"]));
+    def registerVerify(self, recv_dict):
+        if(recv_dict["registered"]):
+            self.showErrorMsg("register complete");
+        else:
+            self.showErrorMsg("Already registered");
+    def showErrorMsg(self,msg):
+        self.errorWindow.erase();
         self.errorWindow.border();
-        self.errorWindow.addstr(1,1,"Can't login to id" + str(recv_dict["id"]))
+        self.errorWindow.addstr(1,1,msg);
         self.errorWindow.refresh();
 class LoginWindow():
     def __init__(self,n_row, n_col, start_y, start_x) -> None:
@@ -72,48 +78,8 @@ class LoginWindow():
         self.inputBox.update();
     def tryLogin(self):
         sendDictList.append(self.inputBox.getResult());
-class cursorWindow():
-    pass
 
-class inputBox():
-    def __init__(self, dictionary,cursor,win) -> None:
-        self.cursor = cursor
-        self.content = dictionary
-        self.window = win
-        self.window.nodelay(True);
-        self.updateWindow();
-        curses.color_content(1,curses.COLOR_BLACK, curses.COLOR_WHITE);
-        curses.color_content(2,curses.COLOR_WHITE, curses.COLOR_BLACK);
-    def handleInput(self,inputChar)-> None:
-        if(inputChar == -1):
-            pass
-        elif(inputChar == UTF_FILE.KEY_BACKSPACE):
-            self.content[self.cursor] = self.content[self.cursor][:-1]
-        elif(inputChar == UTF_FILE.KEY_TAB):
-            self.cursor = GetNextKey(self.content,self.cursor)
-        else:
-            self.content[self.cursor] += inputChar;
-    def update(self):
-        self.window.erase();
-        self.updateWindow();
-    def updateWindow(self):
-        self.window.border();
-        selectedColor = curses.color_pair(1)
-        unselectedColor = curses.color_pair(2)
-        countLine = 1
-        for key in self.content:
-            if(key == self.cursor):
-                targetColor = selectedColor;
-            else:
-                targetColor = unselectedColor;
-            self.window.addstr(countLine,1,key + ':' + self.content[key],targetColor)
-            countLine += 1;
-        self.window.refresh();
-    def getResult(self):
-        return self.content;
-    def clearContent(self):
-        for key in self.content:
-            self.content[key] = '';
+
 class debugWindow():
     def __init__(self) -> None:
         self.window = curses.newwin(10,10,0,100);
