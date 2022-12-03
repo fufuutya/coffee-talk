@@ -1,3 +1,4 @@
 servertest.py
 test.py
 note.py
+*.pyc
