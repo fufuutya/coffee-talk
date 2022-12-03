@@ -10,6 +10,7 @@ class LoginPhase():
     def __init__(self) -> None:
         self.setWelcomeWindow();
         self.loginWindow = LoginWindow(5,100,7,0);
+        self.setErrorWindow();
         self.isLogin  = False
     def setWelcomeWindow(self):
         self.welcomWindow = curses.newwin(5,100,0,0)
@@ -59,7 +60,7 @@ class LoginPhase():
         self.errorWindow.refresh();
 class LoginWindow():
     def __init__(self,n_row, n_col, start_y, start_x) -> None:
-        self.content = {"mode":"login", "id" : "", "password" : ""}
+        self.content = {"mode":"login", "id" : "", "userName" : ""}
         self.inputBox = inputBox(self.content, "id",n_row, n_col, start_y, start_x)
         self.debug = debugWindow();
     def update(self)-> None:

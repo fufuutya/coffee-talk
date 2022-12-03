@@ -14,21 +14,25 @@ class ClientConnection():
         self.isLogged = False;
         self.clientID = None;
         self.OutputQueue = [];
-    def acceptPacket(self):
-        recv_msg = self.clientSocket.recv(1024).decode('utf-8');
+    def acceptPacket(self)->bool:
+        try:
+            recv_msg = self.clientSocket.recv(1024).decode('utf-8');
+        except:
+            return False;
         if(recv_msg == ''):
             return
         recv_msg = json.loads(recv_msg);
         print(recv_msg)
         match recv_msg['mode']:
             case 'login':
-                self.login(recv_msg['id'])
-            case 'registered':
-                self.register(recv_msg['id'])
+                self.trylogin(recv_msg['id'])
+            case 'register':
+                self.tryRegister(recv_msg['id'],recv_msg['userName'])
             case 'send':
                 self.sendMSG(recv_msg['client_id'],recv_msg['receiver_id'],recv_msg['message'], recv_msg['date'])
             case 'request':
                 self.receiveMSG(recv_msg['client_id'], recv_msg['date']);
+        return True
     def receiveMSG(self, clientID, date):
         if self.isValidClient(clientID):
             data = self.database.getMessageFor(clientID, date);
@@ -53,15 +57,15 @@ class ClientConnection():
         send_msg = json.dumps({'mode':'send', 'sender_id': senderID, 'receiver_id' : receiverID, 'sent' : isSent, "message" : msg , 'date' : date})
         self.OutputQueue.append(send_msg);
             
-    def register(self,ID):
-        if self.database.isIDExist(ID):
-            self.database.addID(ID);
-            self.isLogged = True;
-            self.clientID = ID;
-        send_msg = json.dumps({'mode':"register", 'registered': self.isLogged});
-        self.OutputQueue.append(send_msg);
-    def login(self, ID):
+    def tryRegister(self,ID,userName):
+        registered=False
         if not self.database.isIDExist(ID):
+            self.database.addID(ID,userName);
+            registered = True;
+        send_msg = json.dumps({'mode':"register","userName" : userName, "id":ID, 'registered': registered});
+        self.OutputQueue.append(send_msg);
+    def trylogin(self, ID):
+        if self.database.isIDExist(ID):
             self.isLogged = True;
             self.clientID = ID;
         send_msg = json.dumps({'mode':'login','id': ID, 'logined' : self.isLogged})
@@ -72,9 +76,6 @@ class ClientConnection():
             self.clientSocket.sendall(output.encode());
             self.OutputQueue.remove(output);
             
-    def login(self, loginID) -> None:
-        self.isLogged = True;
-        self.clientID = loginID;
     def isValidClient(self, clientID)->bool:
         return self.isLogged and self.clientID == clientID;
 def getMasterSocket():
@@ -101,7 +102,6 @@ def main():
         outputs.append(conn);
         clientConnection = ClientConnection(conn, db);
         connectionPair[conn] = clientConnection;
-    
     print('Listening to host.')
     while inputs:
         readable, writable, exceptional = select.select(inputs, outputs, inputs)
@@ -109,7 +109,17 @@ def main():
             if s is masterSocket:
                 accept(s);
             else:
-                connectionPair[s].acceptPacket();
+                isAccept = connectionPair[s].acceptPacket();
+                if not isAccept:
+                    print("socket has problem. disconnecting socket");
+                    inputs.remove(s);
+                    outputs.remove(s);
+                    if s in writable:
+                        writable.remove(s);
+                    disconnected = connectionPair.pop(s);
+                    del disconnected
+                    s.close();
+                    
         for s in writable:
             connectionPair[s].FlushOutput()
     
