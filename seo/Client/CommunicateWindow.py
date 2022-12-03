@@ -13,7 +13,7 @@ class communicateWindow():
     def setErrorWindow(self):
         self.errorWindow = curses.newwin(5,120,21,0);
     def task(self):
-        while not self.isLogin:
+        while self.isLogin:
             self.friendWindow.update();
             self.checkNetwork();
         return None
