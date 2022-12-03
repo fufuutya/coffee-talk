@@ -2,19 +2,17 @@ import socket
 import selectors
 import sys
 import json
+import select
 from option import *
 from threading import Thread
+from windowTools import Log
 rcvDictList = [];
 sendDictList = [];
 client = None;
-def getClient():
-    if(client == None):
-        client = connect()
-    return client
 def connect():
     reconnect = True
     while reconnect:
-        server_ip = '172.17.0.14'
+        server_ip = '127.0.0.1'
         server_port = 1111
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -29,20 +27,19 @@ def connect():
                 print('Goodbye')
                 sys.exit()
     return client
-def trackMsg():
+def trackMsg(client):
     readSel = selectors.DefaultSelector();
     writeSel = selectors.DefaultSelector();
     readSel.register(client, selectors.EVENT_READ, readContent);
     writeSel.register(client, selectors.EVENT_WRITE, writeContent);
     while True:
-        events = readSel.select()
-        for key, mask in events:
-            callback = key.data
-            callback(key.fileobj);
-        events = writeSel.select()
-        for key, mask in events:
-            callback = key.data
-            callback(key.fileobj);
+        rcli, wcli, xcli = select.select([client],[client],[client]);
+        for rMat in rcli:
+            readContent(rMat)
+        for wMat in wcli:
+            writeContent(wMat)
+        for xMat in xcli:
+            Log(xMat)
 def readContent(conn:socket.socket):
     recv_msg = conn.recv(1024).decode('utf-8');
     if recv_msg:
@@ -51,12 +48,12 @@ def readContent(conn:socket.socket):
     else:
         return
 def writeContent(conn:socket.socket):
-    if(sendDictList.count != 0):
+    if(len(sendDictList) != 0):
         sendDict = sendDictList[0];
-        send_msg = json.dump(sendDict);
-        conn.sendall(send_msg);
+        send_msg = json.dumps(sendDict);
+        conn.sendall(send_msg.encode());
         sendDictList.remove(sendDict);
 def runTrackThread():
-    connect();
-    trackThread = Thread(target= trackMsg);
+    client = connect();
+    trackThread = Thread(target= trackMsg, args= [client]);
     trackThread.start();

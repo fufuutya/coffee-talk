@@ -4,17 +4,12 @@ from ConnectionManagement import rcvDictList;
 from ConnectionManagement import sendDictList;
 from CommunicateWindow import communicateWindow;
 from windowTools import inputBox
-def GetInput(window):
-    try:
-        inputChar = window.getkey();
-        test = inputChar;
-    except: #when there is no input
-        inputChar = -1;
-    return inputChar;
+from windowTools import GetInput
+
 class LoginPhase():
     def __init__(self) -> None:
         self.setWelcomeWindow();
-        self.loginWindow = LoginWindow(5,100,6,0);
+        self.loginWindow = LoginWindow(5,100,7,0);
         self.isLogin  = False
     def setWelcomeWindow(self):
         self.welcomWindow = curses.newwin(5,100,0,0)
@@ -30,7 +25,7 @@ class LoginPhase():
             self.checkNetwork();
         return communicateWindow(self.loginID);#TODO
     def checkNetwork(self):
-        if(rcvDictList.count != 0):
+        if(len(rcvDictList) != 0):
             rcv_dict:dict = rcvDictList[0];
             rcvDictList.remove(rcv_dict);
         else :
@@ -64,12 +59,11 @@ class LoginPhase():
         self.errorWindow.refresh();
 class LoginWindow():
     def __init__(self,n_row, n_col, start_y, start_x) -> None:
-        self.content = {"mode":"login", "name" : "", "password" : ""}
-        self.window = curses.newwin(n_row,n_col,start_y,start_x)
-        self.inputBox = inputBox(self.content, "name", self.window)
+        self.content = {"mode":"login", "id" : "", "password" : ""}
+        self.inputBox = inputBox(self.content, "id",n_row, n_col, start_y, start_x)
         self.debug = debugWindow();
     def update(self)-> None:
-        inputChar = GetInput(self.window)
+        inputChar = GetInput(self.inputBox.window);
         if(inputChar == UTF_FILE.KEY_ENTER):
             self.tryLogin();
         else:

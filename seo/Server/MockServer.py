@@ -4,9 +4,8 @@ import sys
 import json
 import queue
 import select
-import protocol
 import selectors
-from seo.Server.DB import Database
+from DB import Database
 
 class ClientConnection():
     def __init__(self, clientSocket:socket, database : Database) -> None:
@@ -15,8 +14,8 @@ class ClientConnection():
         self.isLogged = False;
         self.clientID = None;
         self.OutputQueue = [];
-    def acceptPacket(self, conn):
-        recv_msg = conn.recv(1024).decode('utf-8');
+    def acceptPacket(self):
+        recv_msg = self.clientSocket.recv(1024).decode('utf-8');
         if(recv_msg == ''):
             return
         recv_msg = json.loads(recv_msg);
@@ -67,7 +66,7 @@ class ClientConnection():
             self.clientID = ID;
         send_msg = json.dumps({'mode':'login','id': ID, 'logined' : self.isLogged})
         self.OutputQueue.append(send_msg);
-    def FlushOutput(self, conn):
+    def FlushOutput(self):
         for output in self.OutputQueue:
             print(output);
             self.clientSocket.sendall(output.encode());
@@ -89,28 +88,30 @@ def getMasterSocket():
 
     
 def main():
-    readSel = selectors.DefaultSelector()
-    writeSel = selectors.DefaultSelector()
+    masterSocket = getMasterSocket();
+    connectionPair = {};
+    inputs = [masterSocket];
+    outputs = [];
     db = Database();
     def accept(sock):
         print("Accept Client.")
         conn, addr = sock.accept()
         conn.setblocking(False);
+        inputs.append(conn);
+        outputs.append(conn);
         clientConnection = ClientConnection(conn, db);
-        readSel.register(conn, selectors.EVENT_READ, clientConnection.acceptPacket)
-        writeSel.register(conn, selectors.EVENT_WRITE, clientConnection.FlushOutput)
-    masterSocket = getMasterSocket();
+        connectionPair[conn] = clientConnection;
+    
     print('Listening to host.')
-    readSel.register(masterSocket, selectors.EVENT_READ, accept)
-    while True:
-        events = readSel.select()
-        for key, mask in events:
-            callback = key.data
-            callback(key.fileobj);
-        events = writeSel.select()
-        for key, mask in events:
-            callback = key.data
-            callback(key.fileobj);
+    while inputs:
+        readable, writable, exceptional = select.select(inputs, outputs, inputs)
+        for s in readable:
+            if s is masterSocket:
+                accept(s);
+            else:
+                connectionPair[s].acceptPacket();
+        for s in writable:
+            connectionPair[s].FlushOutput()
     
 
 if __name__ == "__main__":
