@@ -1,19 +1,18 @@
 import socket
 import selectors
 import sys
+import json
+from option import *
 import time
 import threading
-import json
 import datetime
-from option import *
+import curses
 
 # CONNECT TO SERVER
 def connect():
-    global client
-    global connected
     reconnect = True
     while reconnect:
-        server_ip = '172.17.0.158'
+        server_ip = '172.17.14.84'
         server_port = 1111
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
