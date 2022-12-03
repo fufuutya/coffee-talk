@@ -80,7 +80,7 @@ class ClientConnection():
         return self.isLogged and self.clientID == clientID;
 def getMasterSocket():
     portNumber = 1111;
-    hostname = '127.0.0.1'
+    hostname = '172.17.0.144'
     serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     serverSocket.bind((hostname, portNumber))
     serverSocket.listen(5);

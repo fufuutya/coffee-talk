@@ -4,12 +4,14 @@ from ConnectionManagement import rcvDictList;
 from ConnectionManagement import sendDictList;
 import chatMsgList
 from windowTools import inputBox
+from windowTools import GetInput
 import datetime
 
 class communicateWindow():
     def __init__(self, idInfo) -> None:
-        self.friendWindow = friendWindow(20,20,0,0);
+        self.friendWindow = friendWindow(10,20,0,0);
         self.id = idInfo
+        self.isLogin = True;
     def setErrorWindow(self):
         self.errorWindow = curses.newwin(5,120,21,0);
     def task(self):
@@ -47,7 +49,7 @@ class friendWindow():
     def __init__(self,n_row, n_col, start_x, start_y) -> None:
         self.window = curses.newwin(n_row, n_col, start_x, start_y);
         self.cursor = "+New id";
-        self.conversationWindow = friendAddBox()
+        self.conversationWindow = friendAddBox(3, 20, 0, n_row+start_x);
     def update(self):
         self.buttonList = chatMsgList.idList.copy()
         self.buttonList.append("+New id");
@@ -55,13 +57,13 @@ class friendWindow():
         self.updateDraw();
         self.conversationWindow.update();
     def checkInput(self):
-        inputChar = self.window.getch();
+        inputChar = GetInput(self.window);
         self.handleInput(inputChar);
     def updateDraw(self):
         self.window.erase();
         self.window.border();
         countRow = 1;
-        for id in self.buttonListbuttonList:
+        for id in self.buttonList:
             self.drawId(id);
             countRow += 1;
         self.window.refresh();

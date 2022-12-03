@@ -9,10 +9,12 @@ def main(stdscr : 'curses._CursesWindow'):
     stdscr.nodelay(True);
     currentState = LoginWindow.LoginPhase();
     while True:
+        stdscr.nodelay(True);
         currentState = currentState.task();
         if not currentState:
             exit();
         stdscr.clear();
+        stdscr.refresh();
         
     
 wrapper(main)

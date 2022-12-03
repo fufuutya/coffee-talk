@@ -8,6 +8,7 @@ def GetNextKey(dictionary:dict, currentKey):
     return list(dictionary.keys())[nextKeyIndex];
 
 def GetInput(window):
+    window.nodelay(True);
     try:
         inputChar = window.getkey();
         test = inputChar;
