@@ -22,4 +22,4 @@ def assureIdExist(id):
         idList.index(id);
     except:
         idList.append(id);
-        msgList[id] = {}
+        msgList[id] = []

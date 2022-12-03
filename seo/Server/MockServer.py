@@ -29,9 +29,14 @@ class ClientConnection():
             case 'register':
                 self.tryRegister(recv_msg['id'],recv_msg['userName'])
             case 'send':
-                self.sendMSG(recv_msg['client_id'],recv_msg['receiver_id'],recv_msg['message'], recv_msg['date'])
+                self.sendMSG(recv_msg['sender_id'],recv_msg['receiver_id'],recv_msg['message'], recv_msg['date'])
             case 'request':
                 self.receiveMSG(recv_msg['client_id'], recv_msg['date']);
+            case 'check':
+                isIdExist = self.database.isIDExist(recv_msg["check_id"]);
+                recv_msg["checked"] = isIdExist
+                send_msg = json.dumps(recv_msg)
+                self.OutputQueue.append(send_msg);
         return True
     def receiveMSG(self, clientID, date):
         if self.isValidClient(clientID):
@@ -49,7 +54,7 @@ class ClientConnection():
             
     def sendMSG(self, senderID, receiverID, msg, date):
         isSent = False;
-        if self.isValidClient(senderID):
+        if self.isValidClient(senderID) and self.database.isIDExist(receiverID):
             self.database.addMessage(senderID, receiverID, msg, date)
             isSent = True;
         else:

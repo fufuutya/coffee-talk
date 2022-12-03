@@ -15,6 +15,9 @@ class communicateWindow():
         self.setErrorWindow();
     def setErrorWindow(self):
         self.errorWindow = curses.newwin(5,120,11,0);
+    def showErrMessage(self, str):
+        self.errorWindow.border();
+        self.errorWindow.addstr(1,1,str);
     def task(self):
         while self.isLogin:
             self.friendWindow.update();
@@ -33,13 +36,20 @@ class communicateWindow():
             self.manageSend(recv_dict);
         elif mode == "request":
             self.manageReceive(recv_dict);
+        elif mode == "check":
+            self.manageCheck(recv_dict);
         else:
             pass
+    def manageCheck(self, dict):
+        if dict['checked']:
+            chatMsgList.assureIdExist(dict['check_id']);
+        else:
+            self.showErrMessage("There is no such ID" + dict["check_id"])
     def manageSend(self, dict):
-        if(dict["send"] == True and dict["sender_id"] == self.id):
-            chatMsgList.msgList[dict["reciever_id"]].append(dict);
+        if(dict["sent"] == True and dict["sender_id"] == self.id):
+            chatMsgList.msgList[dict["receiver_id"]].append(dict);
         else:
-            pass
+            self.showErrMessage("There is no such ID" + dict["receiver_id"])
     def manageReceive(self, dict):
         if(dict["requested"]== True and dict["reciever_id"] == self.id):
             chatMsgList.assureIdExist(dict["sender_id"]);
@@ -120,11 +130,12 @@ class conversationWindow():
         sortedList = sorted(msgList, key= lambda item:item["date"]);
         countRow = 1;
         for msg in sortedList:
-            consumeLine = self.window.addstr(countRow, msg)
+            consumeLine = self.drawMsg(countRow, msg)
             countRow += consumeLine;
+        self.window.refresh();
     def drawMsg(self,rowNum, msg)->int:
         self.window.addstr(rowNum,1,"From :" + msg["sender_id"] + ". To : " + msg["receiver_id"])
-        self.window.addstr(rowNum,1,msg["message"]);
+        self.window.addstr(rowNum+1,1,msg["message"]);
         return 3;
 class msgAddBox(inputBox):
     def __init__(self,clientId, targetID, n_row, n_col, start_y, start_x) -> None:
@@ -151,6 +162,9 @@ class friendAddBox(inputBox):
         cursor = "new_id"
         super().__init__(dict, cursor, n_row, n_col, start_y, start_x)
     def handleInput(self, inputChar) -> None:
-        super().handleInput(inputChar);
         if(inputChar == UTF_FILE.KEY_ENTER):
-            chatMsgList.assureIdExist(self.getResult()["new_id"]);
+            sendMsg = {"mode" : "check"}
+            sendMsg['check_id'] = self.getResult()['new_id'];
+            sendDictList.append(sendMsg);
+        else:
+            super().handleInput(inputChar);
