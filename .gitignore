@@ -5,3 +5,4 @@ you
 me
 requirements.txt
 chat.txt
+*.pyc
