@@ -7,6 +7,4 @@ requirements.txt
 chat.txt
 *.pyc
 bell
-bell/Client/CommunicateWindow.py
-bell/Client/LoginWindow.py
 final
