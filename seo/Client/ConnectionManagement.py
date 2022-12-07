@@ -12,7 +12,7 @@ client = None;
 def connect():
     reconnect = True
     while reconnect:
-        server_ip = '172.17.0.144'
+        server_ip = '127.0.0.1'
         server_port = 1111
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)

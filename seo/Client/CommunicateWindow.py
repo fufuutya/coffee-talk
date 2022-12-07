@@ -6,28 +6,36 @@ import chatMsgList
 from windowTools import inputBox
 from windowTools import GetInput
 import datetime
+from screenManagement import clearScreen
 
 class communicateWindow():
     def __init__(self, idInfo) -> None:
         self.id = idInfo
+        chatMsgList.readFile(self.id)
+        self.requestMessage()
         self.isLogin = True;
         self.friendWindow = friendWindow(self.id, 10,20,0,0);
         self.setErrorWindow();
     def setErrorWindow(self):
-        self.errorWindow = curses.newwin(5,120,11,0);
+        self.errorWindow = curses.newwin(5,50,11,0);
     def showErrMessage(self, str):
         self.errorWindow.border();
         self.errorWindow.addstr(1,1,str);
+        self.errorWindow.refresh();
     def task(self):
         while self.isLogin:
             self.friendWindow.update();
             self.checkNetwork();
         return None
+    def requestMessage(self):
+        send_dict = {'mode' : 'request', 'client_id': self.id, 'date': chatMsgList.lastDate.strftime('%Y-%m-%d %H:%M:%S')}
+        sendDictList.append(send_dict);
     def checkNetwork(self):
         if(len(rcvDictList)):
             rcv_dict:dict = rcvDictList[0];
             rcvDictList.remove(rcv_dict);
             self.receiveMsg(rcv_dict);
+            chatMsgList.storeFile(self.id);
         else :
             return
     def receiveMsg(self,recv_dict):
@@ -44,14 +52,14 @@ class communicateWindow():
         if dict['checked']:
             chatMsgList.assureIdExist(dict['check_id']);
         else:
-            self.showErrMessage("There is no such ID" + dict["check_id"])
+            self.showErrMessage("There is no such ID : " + dict["check_id"])
     def manageSend(self, dict):
         if(dict["sent"] == True and dict["sender_id"] == self.id):
             chatMsgList.msgList[dict["receiver_id"]].append(dict);
         else:
             self.showErrMessage("There is no such ID" + dict["receiver_id"])
     def manageReceive(self, dict):
-        if(dict["requested"]== True and dict["reciever_id"] == self.id):
+        if(dict["requested"]== True and dict["receiver_id"] == self.id):
             chatMsgList.assureIdExist(dict["sender_id"]);
             chatMsgList.msgList[dict["sender_id"]].append(dict);
     def sendMsg(self,send_dict):
@@ -61,7 +69,8 @@ class friendWindow():
         self.id = id;
         self.window = curses.newwin(n_row, n_col, start_y, start_x);
         self.cursor = "+New id";
-        self.conversationWindow = friendAddBox(3, 100, 0, n_col+start_x);
+        self.conversationWindow = friendAddBox(3, 50, 0, n_col+start_x);
+        self.welcomeWindow = curses.newwin(3,20, 0, n_col+start_x+50);
         self.n_row = n_row
         self.n_col = n_col
         self.start_y = start_y
@@ -74,19 +83,25 @@ class friendWindow():
         self.conversationWindow.update();
     def checkInput(self):
         inputChar = GetInput(self.window);
-        self.handleInput(inputChar);
+        if inputChar == -1:
+            pass
+        else:
+            self.handleInput(inputChar);
     def updateDraw(self):
         self.window.erase();
-        self.window.border();
+        self.window.border();        
         countRow = 1;
         for id in self.buttonList:
             self.drawId(countRow, id);
             countRow += 1;
         self.window.refresh();
+        self.welcomeWindow.addstr(1,1,"ID : " + self.id);
+        self.welcomeWindow.refresh();
     def handleInput(self,inputchar):
         if inputchar == UTF_FILE.KEY_TAB:
             next_cursor = self.getRelativeCursor(-1);
             self.changeCursor(next_cursor)
+            clearScreen();
         else :
             self.conversationWindow.handleInput(inputchar);
     def drawId(self,rowNum, id):
@@ -99,7 +114,7 @@ class friendWindow():
         self.conversationWindow.window.erase();
         if(self.cursor == "+New id"):
             dictionary = {"new_id": ""}
-            self.conversationWindow = friendAddBox(3, 100, 0, self.n_col+self.start_x);
+            self.conversationWindow = friendAddBox(3, 50, 0, self.n_col+self.start_x);
         else:
             self.conversationWindow = conversationWindow(self.id, self.cursor, 10,50, 0, 21)
     def getRelativeCursor(self,offset):
@@ -118,8 +133,14 @@ class conversationWindow():
     def __init__(self,clientId, targetId,n_row, n_col, start_y, start_x) -> None:
         self.clientId = clientId;
         self.targetId = targetId;
-        self.window = curses.newwin(n_row-3,n_col,start_y,start_x);
-        self.inputBox = msgAddBox(self.clientId, self.targetId,3,n_col,start_y + n_row-3, start_x);
+        self.n_row = n_row;
+        self.n_col = n_col;
+        self.start_x = start_x;
+        self.start_y = start_y;
+        self.end_x = start_x + n_col;
+        self.end_y = start_y + n_row;
+        self.window = curses.newpad(1000,n_col)
+        self.inputBox = msgAddBox(self.clientId, self.targetId,3,n_col,start_y + n_row+3, start_x);
     def handleInput(self, inputChar):
         self.inputBox.handleInput(inputChar);
     def update(self):
@@ -132,9 +153,9 @@ class conversationWindow():
         for msg in sortedList:
             consumeLine = self.drawMsg(countRow, msg)
             countRow += consumeLine;
-        self.window.refresh();
+        self.window.refresh(countRow - self.n_row,0, self.start_y,self.start_x,self.end_y,self.end_x);
     def drawMsg(self,rowNum, msg)->int:
-        self.window.addstr(rowNum,1,"From :" + msg["sender_id"] + ". To : " + msg["receiver_id"])
+        self.window.addstr(rowNum,1,"From :" + msg["sender_id"] + ". To : " + msg["receiver_id"] + " - " +msg["date"])
         self.window.addstr(rowNum+1,1,msg["message"]);
         return 3;
 class msgAddBox(inputBox):

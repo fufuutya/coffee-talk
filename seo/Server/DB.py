@@ -65,7 +65,8 @@ class Database():
         SELECT *
         FROM communicationList
         WHERE receiverID = ''' + stringFormatting(receiverID) +\
-        "WHERE communicationDate >=" + stringFormatting(latestDateTimeReceived)
+        "and communicationDateTime >" + stringFormatting(latestDateTimeReceived)
+        self.cursor.execute(executeStatement);
         data = self.cursor.fetchall()
         return data;
         
