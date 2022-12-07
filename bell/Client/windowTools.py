@@ -1,34 +1,39 @@
 import curses
 import UTF_FILE
+import getpass
+
 def GetNextKey(dictionary:dict, currentKey):
-    currentKeyIndex = list(dictionary.keys()).index(currentKey);
-    nextKeyIndex = currentKeyIndex + 1;
+    currentKeyIndex = list(dictionary.keys()).index(currentKey)
+    nextKeyIndex = currentKeyIndex + 1
     if (nextKeyIndex >= len(dictionary.keys())):
-        nextKeyIndex = 0;
-    return list(dictionary.keys())[nextKeyIndex];
+        nextKeyIndex = 0
+    return list(dictionary.keys())[nextKeyIndex]
 
 def GetInput(window):
-    window.nodelay(True);
+    window.nodelay(True)
     try:
-        inputChar = window.getkey();
-        test = inputChar;
+        inputChar = window.getkey()
+        test = inputChar
     except: #when there is no input
-        inputChar = -1;
-    return inputChar;
+        inputChar = -1
+    return inputChar
 
 def Log(str):
     file = open("log.txt",'a')
-    file.write(str);
+    file.write(str)
+    
 class inputBox():
-    def initialize(self, dictionary,cursor,win) -> None:
+    def initialize(self, dictionary, cursor, win) -> None:
         self.cursor = cursor
         self.content = dictionary
         self.window = win
-        self.window.nodelay(True);
-        self.updateWindow();
-    def __init__(self,dict,cursor, n_row, n_col, start_y, start_x) -> None:
-        window = curses.newwin(n_row, n_col, start_y,start_x);
-        self.initialize(dict, cursor, window);
+        self.window.nodelay(True)
+        self.updateWindow()
+        
+    def __init__(self, dict, cursor, n_row, n_col, start_y, start_x):
+        window = curses.newwin(n_row, n_col, start_y,start_x)
+        self.initialize(dict, cursor, window)
+        
     def handleInput(self,inputChar)-> None:
         if(inputChar == -1):
             pass
@@ -37,22 +42,26 @@ class inputBox():
         elif(inputChar == UTF_FILE.KEY_TAB):
             self.cursor = GetNextKey(self.content,self.cursor)
         else:
-            self.content[self.cursor] += inputChar;
+            self.content[self.cursor] += inputChar
+            
     def update(self):
-        self.window.erase();
-        self.updateWindow();
+        self.window.erase()
+        self.updateWindow()
+        
     def updateWindow(self):
-        self.window.border();
+        self.window.border()
         countLine = 1
         for key in self.content:
             if(key == self.cursor):
                 self.window.addstr(countLine,1,key + ':' + self.content[key],curses.A_REVERSE)
             else:
                 self.window.addstr(countLine,1,key + ':' + self.content[key])
-            countLine += 1;
-        self.window.refresh();
+            countLine += 1
+        self.window.refresh()
+        
     def getResult(self):
-        return self.content;
+        return self.content
+    
     def clearContent(self):
         for key in self.content:
-            self.content[key] = '';
+            self.content[key] = ''
