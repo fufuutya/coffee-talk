@@ -1,10 +1,8 @@
 import socket
-import datetime
-import sys
 import json
-import queue
 import select
-import selectors
+import datetime
+from socketList import connectionPair
 from DB import Database
 
 class ClientConnection():
@@ -44,7 +42,7 @@ class ClientConnection():
             for letter in data:
                 senderID = letter[0]
                 message = letter[2]
-                date = letter[3]#need to fix magic number problem.
+                date = letter[3].strftime('%Y-%m-%d %H:%M:%S')#need to fix magic number problem.
                 send_msg = json.dumps({'mode':'request','requested' : True ,'receiver_id' : clientID,'sender_id' : senderID, 'message' : message, 'date' : date})
                 self.OutputQueue.append(send_msg);
         else:
@@ -53,14 +51,24 @@ class ClientConnection():
         
             
     def sendMSG(self, senderID, receiverID, msg, date):
+                
         isSent = False;
         if self.isValidClient(senderID) and self.database.isIDExist(receiverID):
             self.database.addMessage(senderID, receiverID, msg, date)
             isSent = True;
         else:
             pass
-        send_msg = json.dumps({'mode':'send', 'sender_id': senderID, 'receiver_id' : receiverID, 'sent' : isSent, "message" : msg , 'date' : date})
+        send_dict = {'mode':'send', 'sender_id': senderID, 'receiver_id' : receiverID, 'sent' : isSent, "message" : msg , 'date' : date}
+        send_msg = json.dumps(send_dict)
         self.OutputQueue.append(send_msg);
+        for socket in connectionPair:
+            connection : ClientConnection = connectionPair[socket]
+            if connection.clientID == receiverID:
+                send_dict['mode'] = 'request';
+                send_dict['requested'] = True;
+                send_dict['send'] = None;
+                direct_send_msg = json.dumps(send_dict);
+                connection.OutputQueue.append(direct_send_msg);
             
     def tryRegister(self,ID,userName):
         registered=False
@@ -85,7 +93,7 @@ class ClientConnection():
         return self.isLogged and self.clientID == clientID;
 def getMasterSocket():
     portNumber = 1111;
-    hostname = '172.17.0.144'
+    hostname = '127.0.0.1'
     serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     serverSocket.bind((hostname, portNumber))
     serverSocket.listen(5);
@@ -95,7 +103,6 @@ def getMasterSocket():
     
 def main():
     masterSocket = getMasterSocket();
-    connectionPair = {};
     inputs = [masterSocket];
     outputs = [];
     db = Database();
