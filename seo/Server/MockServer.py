@@ -4,7 +4,9 @@ import select
 import datetime
 from socketList import connectionPair
 from DB import Database
-
+import ssl
+context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER);
+context.load_cert_chain("C:/Users/USER/server.crt","C:/Users/USER/server.key")
 class ClientConnection():
     def __init__(self, clientSocket:socket, database : Database) -> None:
         self.clientSocket = clientSocket;
@@ -94,11 +96,12 @@ class ClientConnection():
 def getMasterSocket():
     portNumber = 1111;
     hostname = '127.0.0.1'
-    serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM,0)
     serverSocket.bind((hostname, portNumber))
     serverSocket.listen(5);
     serverSocket.setblocking(False);
-    return serverSocket
+    sslServerSocket = context.wrap_socket(serverSocket, server_side= True);
+    return sslServerSocket
 
     
 def main():
