@@ -7,6 +7,8 @@ from windowTools import inputBox
 from windowTools import GetInput
 import datetime
 from screenManagement import clearScreen
+import rsa;
+import encrypting
 
 class communicateWindow():
     def __init__(self, idInfo) -> None:
@@ -49,19 +51,30 @@ class communicateWindow():
         else:
             pass
     def manageCheck(self, dict):
-        if dict['checked']:
-            chatMsgList.assureIdExist(dict['check_id']);
+        if dict['checked'] == True:
+            public_key = encrypting.string2PublicKey(dict["public_key"])
+            chatMsgList.assureIdExist(dict['check_id'],public_key);
         else:
             self.showErrMessage("There is no such ID : " + dict["check_id"])
     def manageSend(self, dict):
         if(dict["sent"] == True and dict["sender_id"] == self.id):
-            chatMsgList.msgList[dict["receiver_id"]].append(dict);
+            pass
         else:
+            for msg in chatMsgList.msgList[dict["sender_id"]]:
+                if msg['date'] == dict['date']:
+                    chatMsgList.msgList[dict["sender_id"]].remove(msg);
             self.showErrMessage("There is no such ID" + dict["receiver_id"])
     def manageReceive(self, dict):
         if(dict["requested"]== True and dict["receiver_id"] == self.id):
-            chatMsgList.assureIdExist(dict["sender_id"]);
-            chatMsgList.msgList[dict["sender_id"]].append(dict);
+            if chatMsgList.isIDExist(dict["sender_id"]):    
+                dict["message"] = encrypting.decryptReceiveMsg(dict["message"], dict["sender_id"]);
+                chatMsgList.msgList[dict["sender_id"]].append(dict);
+            else:
+                sendMsg = {"mode" : "check"}
+                sendMsg['check_id'] = dict["sender_id"];
+                sendDictList.append(sendMsg);
+                rcvDictList.append(dict);
+
     def sendMsg(self,send_dict):
         sendDictList.append(send_dict);
 class friendWindow():
@@ -77,7 +90,7 @@ class friendWindow():
         self.start_x = start_x
     def update(self):
         self.buttonList = chatMsgList.idList.copy()
-        self.buttonList.append("+New id");
+        self.buttonList["+New id"] = None;
         self.checkInput();
         self.updateDraw();
         self.conversationWindow.update();
@@ -91,7 +104,7 @@ class friendWindow():
         self.window.erase();
         self.window.border();        
         countRow = 1;
-        for id in self.buttonList:
+        for id in self.buttonList.keys():
             self.drawId(countRow, id);
             countRow += 1;
         self.window.refresh();
@@ -118,7 +131,7 @@ class friendWindow():
         else:
             self.conversationWindow = conversationWindow(self.id, self.cursor, 10,50, 0, 21)
     def getRelativeCursor(self,offset):
-        currentIndex = self.buttonList.index(self.cursor);
+        currentIndex = list(self.buttonList.keys()).index(self.cursor);
         nextIndex = currentIndex + offset;
         if(nextIndex >= len(self.buttonList)):
             nextIndex -= len(self.buttonList);
@@ -126,9 +139,8 @@ class friendWindow():
             nextIndex += len(self.buttonList);
         else:
             nextIndex = nextIndex
-        return self.buttonList[nextIndex];
-    def manageInput(self,input):
-        pass
+        nextIndex = list(self.buttonList.keys())[nextIndex]
+        return nextIndex;
 class conversationWindow():
     def __init__(self,clientId, targetId,n_row, n_col, start_y, start_x) -> None:
         self.clientId = clientId;
@@ -171,8 +183,12 @@ class msgAddBox(inputBox):
             send_dict['mode'] = 'send'
             send_dict['sender_id'] = self.clientId;
             send_dict['receiver_id'] = self.targetId;
-            send_dict['message'] = self.getResult()["msg"];
             send_dict['date'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S');
+            message = self.getResult()["msg"];
+            send_dict["message"] = message;
+            crypto = encrypting.encryptMSG(message,self.targetId);
+            chatMsgList.msgList[self.targetId].append(send_dict.copy());
+            send_dict['message'] = crypto;
             sendDictList.append(send_dict);
             self.clearContent();
         else:

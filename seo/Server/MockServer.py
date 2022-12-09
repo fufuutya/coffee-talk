@@ -16,7 +16,7 @@ class ClientConnection():
         self.OutputQueue = [];
     def acceptPacket(self)->bool:
         try:
-            recv_msg = self.clientSocket.recv(1024).decode('utf-8');
+            recv_msg = self.clientSocket.recv(2048).decode('utf-8');
         except:
             return False;
         if(recv_msg == ''):
@@ -27,17 +27,26 @@ class ClientConnection():
             case 'login':
                 self.trylogin(recv_msg['id'])
             case 'register':
-                self.tryRegister(recv_msg['id'],recv_msg['userName'])
+                self.tryRegister(recv_msg['id'],recv_msg['pass_word'], recv_msg['public_key'])
             case 'send':
                 self.sendMSG(recv_msg['sender_id'],recv_msg['receiver_id'],recv_msg['message'], recv_msg['date'])
             case 'request':
                 self.receiveMSG(recv_msg['client_id'], recv_msg['date']);
             case 'check':
-                isIdExist = self.database.isIDExist(recv_msg["check_id"]);
-                recv_msg["checked"] = isIdExist
-                send_msg = json.dumps(recv_msg)
-                self.OutputQueue.append(send_msg);
+                self.checkID(recv_msg["check_id"]);
         return True
+    def checkID(self,checkID):
+        send_msg = {}
+        send_msg['mode'] = 'check'
+        send_msg["check_id"] = checkID;
+        if not self.database.isIDExist(checkID):
+            send_msg["checked"] = False;
+        else :
+            id_info = self.database.getIDInfo(checkID);
+            send_msg["checked"] = True;
+            send_msg["public_key"] = id_info["public_key"]
+        send_msg = json.dumps(send_msg);
+        self.OutputQueue.append(send_msg);
     def receiveMSG(self, clientID, date):
         if self.isValidClient(clientID):
             data = self.database.getMessageFor(clientID, date);
@@ -72,12 +81,12 @@ class ClientConnection():
                 direct_send_msg = json.dumps(send_dict);
                 connection.OutputQueue.append(direct_send_msg);
             
-    def tryRegister(self,ID,userName):
+    def tryRegister(self,ID,pass_word,publickey):
         registered=False
         if not self.database.isIDExist(ID):
-            self.database.addID(ID,userName);
+            self.database.addID(ID,pass_word,publickey);
             registered = True;
-        send_msg = json.dumps({'mode':"register","userName" : userName, "id":ID, 'registered': registered});
+        send_msg = json.dumps({'mode':"register","pass_word" : pass_word, "id":ID, 'registered': registered});
         self.OutputQueue.append(send_msg);
     def trylogin(self, ID):
         if self.database.isIDExist(ID):

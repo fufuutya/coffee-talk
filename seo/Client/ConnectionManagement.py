@@ -23,7 +23,8 @@ def connect():
         try:
             client.connect((server_ip, int(server_port)))
             print('Connected to server')
-            reconnect = False
+            reconnect = False;
+            client.setblocking(False)
         except :
             print('Connection failed')
             reconnect = convert_yesno_to_bool(input('Do you want to reconnect? (y/n): '))
@@ -39,13 +40,16 @@ def trackMsg(client):
     while True:
         rcli, wcli, xcli = select.select([client],[client],[client]);
         for rMat in rcli:
-            readContent(rMat)
+            try :
+                readContent(rMat)
+            except :
+                pass
         for wMat in wcli:
             writeContent(wMat)
         for xMat in xcli:
             Log(xMat)
 def readContent(conn:socket.socket):
-    recv_msg = conn.recv(1024)
+    recv_msg = conn.recv(2048)
     recv_msg = recv_msg.decode('utf-8');
     if recv_msg:
         recv_json = json.loads(recv_msg);

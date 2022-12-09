@@ -5,6 +5,9 @@ from ConnectionManagement import sendDictList;
 from CommunicateWindow import communicateWindow;
 from windowTools import inputBox
 from windowTools import GetInput
+import chatMsgList
+import encrypting
+import rsa
 
 class LoginPhase():
     def __init__(self) -> None:
@@ -45,11 +48,13 @@ class LoginPhase():
     def loginSuccess(self,recv_dict):
         self.isLogin = True;
         self.loginID = recv_dict["id"];
+        chatMsgList.readFile(self.loginID);
         
     def loginFailed(self,recv_dict):
         self.showErrorMsg("Can't login to id" + str(recv_dict["id"]));
     def registerVerify(self, recv_dict):
         if(recv_dict["registered"]):
+            chatMsgList.storeFile(recv_dict['id']);
             self.showErrorMsg("register complete");
         else:
             self.showErrorMsg("Already registered");
@@ -60,7 +65,7 @@ class LoginPhase():
         self.errorWindow.refresh();
 class LoginWindow():
     def __init__(self,n_row, n_col, start_y, start_x) -> None:
-        self.content = {"mode":"login", "id" : "", "userName" : ""}
+        self.content = {"mode":"login", "id" : "", "pass_word" : ""}
         self.inputBox = inputBox(self.content, "id",n_row, n_col, start_y, start_x)
         self.debug = debugWindow();
     def update(self)-> None:
@@ -72,7 +77,16 @@ class LoginWindow():
         self.debug.print(inputChar);
         self.inputBox.update();
     def tryLogin(self):
-        sendDictList.append(self.inputBox.getResult());
+        result = self.inputBox.getResult();
+        if result['mode'] == 'login':
+            sendDictList.append(result);
+        elif result['mode'] == 'register':
+            registerInfo = result.copy();
+            pubKey,privateKey = rsa.newkeys(1024);
+            chatMsgList.public_key = pubKey;
+            chatMsgList.private_key = privateKey;
+            registerInfo['public_key'] = encrypting.key2string(pubKey);
+            sendDictList.append(registerInfo)
 
 
 class debugWindow():

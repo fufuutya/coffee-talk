@@ -1,6 +1,7 @@
 import pymssql
 import pyodbc
 import selectors
+import datetime as DT
 
 communcationTableName = "communcationList"
 IDTableName = "IDList"
@@ -35,19 +36,28 @@ class Database():
         self.cursor = self.connection.cursor();
         self.cursor.execute("use CoffeeTalk")
     def isIDExist(self, ID)->bool:
+        if self.getIDInfo(ID) == None:
+            return False;
+        else : 
+            return True;
+    def getIDInfo(self,ID):
         executeStatement = '''
-        SELECT COUNT(1)
+        SELECT *
         FROM UserList
         WHERE UserID = \'''' + ID + '\''
         self.cursor.execute(executeStatement);
         data = self.cursor.fetchall();
-        if data[0][0] == 0:
-            return False;
+        if len(data) == 0:
+            return None;
         else:
-            return True
-    def addID(self,ID, UserName)->bool:
+            IDdict = {}
+            IDdict["id"] = data[0][0];
+            IDdict["pass_word"] = data[0][1];
+            IDdict["public_key"] = data[0][2];
+            return IDdict;
+    def addID(self,ID, pass_word, public_key)->bool:
         executeStatement = "INSERT INTO UserList " +\
-        valueFormatting([UserName, ID])
+        valueFormatting([ID, pass_word, public_key])
         print(executeStatement)
         if self.isIDExist(ID):
             return False;
@@ -56,9 +66,10 @@ class Database():
             self.connection.commit();
             return True
     def addMessage(self, senderID, receiverID, message, dateTime)->bool:
-        executeStatement = "INSERT INTO communicationList " +\
-        valueFormatting([senderID,receiverID, message, dateTime]);
-        self.cursor.execute(executeStatement);
+        message = message.encode('unicode_escape');
+        executeStatement = "INSERT INTO communicationList (senderID, receiverID, communicationMSG, communicationDateTime) values (?,?,?,?)"
+        params = (senderID, receiverID, pyodbc.Binary(message), DT.datetime.strptime(dateTime, '%Y-%m-%d %H:%M:%S'))
+        self.cursor.execute(executeStatement,params);
         self.connection.commit();
     def getMessageFor(self, receiverID, latestDateTimeReceived):
         executeStatement = '''
@@ -68,5 +79,7 @@ class Database():
         "and communicationDateTime >" + stringFormatting(latestDateTimeReceived)
         self.cursor.execute(executeStatement);
         data = self.cursor.fetchall()
+        for letter in data:
+            letter[2] = letter[2].decode('unicode_escape');
         return data;
         
